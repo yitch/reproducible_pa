@@ -1,0 +1,98 @@
+---
+title: "Reproducible research PA1"
+author: "Yitch"
+date: "Sunday, November 16, 2014"
+output: html_document
+---
+
+##Loading and preprocessing the data
+
+```{r}
+setwd("~/R/Reproducible/repdata-data-activity")
+activity = read.csv("activity.csv")
+head(activity)
+```
+
+##What is mean total number of steps taken per day?
+
+```{r}
+totalSteps <- aggregate(steps ~ date, data = activity, sum, na.rm = TRUE)
+```
+
+histogram
+```{r}
+hist(totalSteps$steps)
+
+```
+
+Mean median
+```{r}
+mean(totalSteps$steps)
+
+median(totalSteps$steps)
+```
+
+
+##What is the average daily activity pattern?
+time series
+```{r}
+stepsInterval <- aggregate(steps ~ interval, data = activity, mean, na.rm = TRUE)
+plot(steps ~ interval, data = stepsInterval, type = "l")
+```
+
+
+max steps
+```{r}
+stepsInterval[which.max(stepsInterval$steps), ]$interval
+```
+
+##Inputing missing values
+Total missing NA
+```{r}
+sum(is.na(activity$steps))
+```
+
+Strategy
+```{r}
+interval2steps <- function(interval) {
+  stepsInterval[stepsInterval$interval == interval, ]$steps
+}
+```
+
+New dataset
+```{r}
+activityFilled <- activity  # Make a new dataset with the original data
+count = 0  # Count the number of data filled in
+for (i in 1:nrow(activityFilled)) {
+  if (is.na(activityFilled[i, ]$steps)) {
+    activityFilled[i, ]$steps <- interval2steps(activityFilled[i, ]$interval)
+    count = count + 1
+  }
+}
+cat("Total ", count, "NA values were filled.\n\r")
+```
+
+historgram
+```{r}
+totalSteps2 <- aggregate(steps ~ date, data = activityFilled, sum)
+hist(totalSteps2$steps)
+```
+
+##Are there differences in activity patterns between weekdays and weekends?
+Weekday/ weekend
+```{r}
+activityFilled$day = ifelse(as.POSIXlt(as.Date(activityFilled$date))$wday%%6 == 
+                              0, "weekend", "weekday")
+# For Sunday and Saturday : weekend, Other days : weekday
+activityFilled$day = factor(activityFilled$day, levels = c("weekday", "weekend"))
+
+stepsInterval2 = aggregate(steps ~ interval + day, activityFilled, mean)
+library(lattice)
+```
+
+Panel plot
+```{r}
+xyplot(steps ~ interval | factor(day), data = stepsInterval2, aspect = 1/2, 
+       type = "l")
+```
+
